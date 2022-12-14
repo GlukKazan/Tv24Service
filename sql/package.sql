@@ -18,6 +18,129 @@ create or replace package bp_tv24 as
 end bp_tv24;
 /
 
+create or replace package body bp_tv24 as
+
+    procedure auth(pPhone in varchar2, pStatus out number, pId out number) as
+      lId number;
+    begin
+      select max(id) into lId
+      from TV24_ACCOUNTS where phone = pPhone;
+      if lId is null then
+         insert into TV24_ACCOUNTS(id, phone) values (TV24_ACCOUNTS_SEQ.nextval, pPhone)
+         returning id into lId;
+      end if;
+      pId := lId;
+      pStatus := 1;
+    end;
+
+    procedure cont(pId in number, pVal in number, pTarId in number, pTariff in varchar2, pDate in varchar2, pStatus out number, pOut out number) as
+    begin
+      insert into TV24_CHARGES(id, acc_id, val, tariff, start_date) values(TV24_CHARGES_SEQ.nextval, pId, pVal, pTariff, to_date(pDate, 'YYYY-MM-DD'))
+      returning id into pOut;
+      pStatus := 1;
+    end;
+
+    procedure pack( pId in number, pTarId in number, pStatus out number) as
+    begin
+      pStatus := 1;
+    end;
+
+    procedure dels( pId in number, pSubId in number, pStatus out number) as
+    begin
+      pStatus := 1;
+    end;
+
+end bp_tv24;
+/
+
+CREATE OR REPLACE type tv24_package_rec is object (
+   id number,
+   parent_id number,
+   name varchar2(100),
+   description varchar2(1000),
+   price number,
+   base number,
+   http_code number,
+   error_message varchar2(1000)
+)
+/
+
+CREATE OR REPLACE type tv24_package_list is table of tv24_package_rec
+/
+
+CREATE OR REPLACE type tv24_abonent_rec is object (
+   id number,
+   username varchar2(500),
+   first_name varchar2(500),
+   last_name varchar2(500),
+   phone varchar2(100),
+   email varchar2(500),
+   provider_id number,
+   is_active number(1),
+   http_code number,
+   error_message varchar2(1000)
+)
+/
+
+CREATE OR REPLACE type tv24_abonent_list is table of tv24_abonent_rec
+/
+
+CREATE OR REPLACE type tv24_subscription_rec is object (
+   id varchar2(100),
+   packet_id number,
+   packet varchar2(100),
+   price number,
+   is_base number(1),
+   is_renew number(1),
+   is_paused number(1),
+   start_at date,
+   end_at date,
+   http_code number,
+   error_message varchar2(1000)
+)
+/
+
+CREATE OR REPLACE type tv24_subscription_list is table of tv24_subscription_rec
+/
+
+CREATE OR REPLACE type tv24_pause_rec is object (
+   id varchar2(100),
+   start_at date,
+   end_at date,
+   http_code number,
+   error_message varchar2(1000)
+)
+/
+
+CREATE OR REPLACE type tv24_pause_list is table of tv24_pause_rec
+/
+
+create or replace package PDriverTv24 as
+  function translit( p_text in varchar2 ) return varchar2;
+
+  function getPackages return tv24_package_list pipelined;
+  function getAbonents return tv24_abonent_list pipelined;
+  function getAbonentById(pId in number) return tv24_abonent_list pipelined;
+  function getAbonentsByPhone(pPhone in varchar2) return tv24_abonent_list pipelined;
+  function getAbonentsByUid(pUid in number) return tv24_abonent_list pipelined;
+  function getCurrSubscriptions(pId in number) return tv24_subscription_list pipelined;
+  function getSubscriptions(pId in number) return tv24_subscription_list pipelined;
+  function getPauses(pId in number, pSub in varchar2) return tv24_pause_list pipelined;
+
+  function addAbonent(pUsername in varchar2, pFirst in varchar2, pLast in varchar2, pEmail in varchar2, pPhone in varchar2, pUid in number, pActive in number) return tv24_abonent_list pipelined;
+  function chgAbonent(pId in number, pUsername in varchar2, pFirst in varchar2, pLast in varchar2, pEmail in varchar2, pPhone in varchar2) return tv24_abonent_list pipelined;
+  function setAbonentProvider(pId in number, pUid in number) return tv24_abonent_list pipelined;
+  function setAbonentActive(pId in number, pActive in number) return tv24_abonent_list pipelined;
+  function setAbonentPacketPrice(pId in number, pPacket in number, pPrice in number) return tv24_package_list pipelined;
+  function addSubscription(pId in number, pPacket in number, pRenew in number default 1) return tv24_subscription_list pipelined;
+  function delSubscription(pId in number, pSub in number) return tv24_subscription_list pipelined;
+  function addPause(pId in number, pSub in number, pStart in date default sysdate, pEnd in date default null) return tv24_pause_list pipelined;
+  function addPausesAll(pId in number, pStart in date default sysdate, pEnd in date default null) return tv24_pause_list pipelined;
+  function delPause(pId in number, pSub in number, pPause in varchar2) return tv24_pause_list pipelined;
+  function delPausesAll(pId in number, pPause in varchar2) return tv24_pause_list pipelined;
+end;
+/
+
 CREATE OR REPLACE package body BILLING.PDriverTv24 as
 
   SERVICE_URL constant varchar2(100) default 'http://127.0.0.1:8092/tv24/'; -- 'http://api.24h.tv/v2/';
