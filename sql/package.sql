@@ -126,7 +126,7 @@ create or replace package PDriverTv24 as
   function getCurrSubscriptions(pId in number) return tv24_subscription_list pipelined;
   function getSubscriptions(pId in number) return tv24_subscription_list pipelined;
   function getPauses(pId in number, pSub in varchar2) return tv24_pause_list pipelined;
-
+  
   function addAbonent(pUsername in varchar2, pFirst in varchar2, pLast in varchar2, pEmail in varchar2, pPhone in varchar2, pUid in number, pActive in number) return tv24_abonent_list pipelined;
   function chgAbonent(pId in number, pUsername in varchar2, pFirst in varchar2, pLast in varchar2, pEmail in varchar2, pPhone in varchar2) return tv24_abonent_list pipelined;
   function setAbonentProvider(pId in number, pUid in number) return tv24_abonent_list pipelined;
@@ -141,7 +141,7 @@ create or replace package PDriverTv24 as
 end;
 /
 
-CREATE OR REPLACE package body BILLING.PDriverTv24 as
+create or replace package body PDriverTv24 as
 
   SERVICE_URL constant varchar2(100) default 'http://127.0.0.1:8092/tv24/'; -- 'http://api.24h.tv/v2/';
   TOKEN constant varchar2(100) default 'b196a328da2c0d8f0b99b589bde39cdacc8a9656';
@@ -211,13 +211,12 @@ CREATE OR REPLACE package body BILLING.PDriverTv24 as
     vResp utl_http.resp;
     vBuff raw(32767);
     vCbuf nclob default empty_clob;
-    vConverted varchar2(1000);
   begin
     utl_http.set_response_error_check(FALSE);
     vReq := utl_http.begin_request(SERVICE_URL || pUrl || 'token=' || TOKEN, pMethod);
     utl_http.set_header(vReq, 'User-Agent', 'Mozilla/4.0'); 
     utl_http.set_header(vReq, 'Content-Type', 'application/' || pFormat || pCharset);
-    if not pText is null then
+    if not pText is null then 
        utl_http.set_header(vReq, 'Content-Length', length(pText));
        utl_http.write_text(vReq, pText);
     end if;    
